@@ -8,43 +8,43 @@ end
 
 function World:new(xg, yg, sleep)
 	local function _callback(callback, fix1, fix2, contact, ...)
-			if fix1:getUserData() and fix2:getUserData() then
-					local shape1, shape2 = fix1:getUserData() , fix2:getUserData()
-					local coll1 , coll2  = fix1:getBody():getUserData(), fix2:getBody():getUserData()
-					local ctitle         = coll1._id  .. "\t" .. coll2._id
-					local stitle         = shape1._id .. "\t" .. shape2._id
-					local world          = coll1._world
+		if (not fix1:getUserData()) or (not fix2:getUserData()) then return end
 
-					world[callback](shape1, shape2, contact, false, ...)
-					shape1[callback](shape1, shape2, contact, false, ...)        
-					shape2[callback](shape2, shape1, contact, true,  ...) 
+		local shape1, shape2 = fix1:getUserData(), fix2:getUserData()
+		local coll1 , coll2  = fix1:getBody():getUserData(), fix2:getBody():getUserData()
+		local ctitle         = coll1._id  .. "\t" .. coll2._id
+		local stitle         = shape1._id .. "\t" .. shape2._id
+		local world          = coll1._world
 
-					if callback == "_pre" or callback == "_post" then
-						coll1[callback](shape1, shape2, contact, false)
-						coll2[callback](shape2, shape1, contact, true)
-					
-					elseif callback == "_enter" then 
-						if not world._collisions[ctitle] then 
-							world._collisions[ctitle] = {}
-							coll1._enter(shape1, shape2, contact, false)
-							coll2._enter(shape2, shape1, contact, true)
-						end
-						table.insert(world._collisions[ctitle], stitle)
+		world[callback](shape1, shape2, contact, false, ...)
+		shape1[callback](shape1, shape2, contact, false, ...)        
+		shape2[callback](shape2, shape1, contact, true,  ...) 
 
-					elseif callback == "_exit" then
-						for i,v in pairs(world._collisions[ctitle]) do 
-							if v == stitle then 
-								table.remove(world._collisions[ctitle], i) 
-								break 
-							end 
-						end
-						if #world._collisions[ctitle] == 0 then 
-							world._collisions[ctitle] = nil
-							coll1._exit(shape1, shape2, contact, false)
-							coll2._exit(shape2, shape1, contact, true)
-						end
-					end
+		if callback == "_pre" or callback == "_post" then
+			coll1[callback](shape1, shape2, contact, false)
+			coll2[callback](shape2, shape1, contact, true)
+		
+		elseif callback == "_enter" then 
+			if not world._collisions[ctitle] then 
+				world._collisions[ctitle] = {}
+				coll1._enter(shape1, shape2, contact, false)
+				coll2._enter(shape2, shape1, contact, true)
 			end
+			table.insert(world._collisions[ctitle], stitle)
+
+		elseif callback == "_exit" then
+			for i,v in pairs(world._collisions[ctitle]) do 
+				if v == stitle then 
+					table.remove(world._collisions[ctitle], i) 
+					break 
+				end 
+			end
+			if #world._collisions[ctitle] == 0 then 
+				world._collisions[ctitle] = nil
+				coll1._exit(shape1, shape2, contact, false)
+				coll2._exit(shape2, shape1, contact, true)
+			end
+		end
 	end
 	local function _enter(fix1, fix2, contact)      _callback("_enter", fix1, fix2, contact)      end
 	local function _exit(fix1, fix2, contact)       _callback("_exit" , fix1, fix2, contact)      end
@@ -59,8 +59,8 @@ function World:new(xg, yg, sleep)
 		_classes_mask = {},
 		_collisions   = {},
 		_queries      = {},
-		_query_color  = {0, 0.8,   1,  1},
-		_joint_color  = {1, 0.5, 0.25, 1},
+		_query_color  = {0, .8,  1, 1},
+		_joint_color  = {1, .5, .2, 1},
 		_enter        = function() end,
 		_exit         = function() end,
 		_pre          = function() end,
@@ -120,7 +120,10 @@ function World:draw()
 	lg.setColor(_r, _g, _b, _a)
 end
 
-function World:get_collisions() return self._collisions end
+function World:get_collisions() 
+	return self._collisions 
+end
+
 function World:get_colliders() 
 	local _colliders = {} 
 	for k,v in pairs(self._colliders) do 
@@ -148,21 +151,37 @@ function World:add_class(tag, ignore)
 	return self
 end
 
-function World:add_joint(joint_type, col1, col2, ...)
-	local _jt, _joint, _j  = joint_type, {}
-	if     _jt == "distance"  then _j = lp.newDistanceJoint(col1._body, col2._body, ...)
-	elseif _jt == "friction"  then _j = lp.newFrictionJoint(col1._body, col2._body, ...)
-	elseif _jt == "gear"      then _j = lp.newGearJoint(col1._joint, col2._joint, ...)    
-	elseif _jt == "motor"     then _j = lp.newMotorJoint(col1._body, col2._body, ...)             
-	elseif _jt == "mouse"     then _j = lp.newMouseJoint(col1._body, col2, ...) -- col2 = x, ... = y      
-	elseif _jt == "prismatic" then _j = lp.newPrismaticJoint(col1._body, col2._body, ...)
-	elseif _jt == "pulley"    then _j = lp.newPulleyJoint(col1._body, col2._body, ...)  
-	elseif _jt == "revolute"  then _j = lp.newRevoluteJoint(col1._body, col2._body, ...)
-	elseif _jt == "rope"      then _j = lp.newRopeJoint(col1._body, col2._body, ...)    
-	elseif _jt == "weld"      then _j = lp.newWeldJoint(col1._body, col2._body, ...)    
-	elseif _jt == "wheel"     then _j = lp.newWheelJoint(col1._body, col2._body, ...) end
+function World:add_joint(a, b, c, d, ...) -- id, type, collider1, collider2, args
+	local _id, _jt, _col1, _col2, _args, _j
 
-	_joint._id    = _uid()
+	if type(a) == 'string' and type(b) == 'string' then 
+		_id, _jt, _col1, _col2, _args = a, b, c, d, {...}
+	else
+		_id, _jt, _col1, _col2, _args = uid(), a, b, c, {d, ...}
+	end
+
+	assert(not self._joints[_id], "Joint already called '" .. tostring(_id) .."'.")
+
+	table.print(_args)
+
+	if     _jt == "distance"  then _j = lp.newDistanceJoint(_col1._body, _col2._body, unpack(_args))
+	elseif _jt == "friction"  then _j = lp.newFrictionJoint(_col1._body, _col2._body, unpack(_args))
+	elseif _jt == "motor"     then _j = lp.newMotorJoint(_col1._body, _col2._body, unpack(_args))             
+	elseif _jt == "prismatic" then _j = lp.newPrismaticJoint(_col1._body, _col2._body, unpack(_args))
+	elseif _jt == "pulley"    then _j = lp.newPulleyJoint(_col1._body, _col2._body, unpack(_args))  
+	elseif _jt == "revolute"  then _j = lp.newRevoluteJoint(_col1._body, _col2._body, unpack(_args))
+	elseif _jt == "rope"      then _j = lp.newRopeJoint(_col1._body, _col2._body, unpack(_args))    
+	elseif _jt == "weld"      then _j = lp.newWeldJoint(_col1._body, _col2._body, unpack(_args))    
+	elseif _jt == "wheel"     then _j = lp.newWheelJoint(_col1._body, _col2._body, unpack(_args)) 
+	elseif _jt == "gear"      then _j = lp.newGearJoint(_col1._joint, _col2._joint, unpack(_args))
+	elseif _jt == "mouse"     then _j = lp.newMouseJoint(_col1._body, _col2, unpack(_args)) -- _col2 = x, ... = y
+	else error("Unknow joint type")
+	end     
+
+	local _joint = {}
+	_joint._world = self
+	_joint._id    = _id
+	_joint._type  = _jt
 	_joint._joint = _j
 	_joint._color = {r=1, g=0.5, b=0.25, a=1}
 
@@ -182,19 +201,19 @@ function World:add_collider(id, collider_type, ...)
 	elseif _ct == "line"      then _b, _s = lp.newBody(_w,        0,        0, _args[5] or "static" ), lp.newEdgeShape(_args[1], _args[2], _args[3], _args[4])
 	elseif _ct == "chain"     then _b, _s = lp.newBody(_w,        0,        0, _args[3] or "static" ), lp.newChainShape(_args[1], unpack(_args[2]))  end
    
-	_collider._world   = self
-	_collider._id      = id or _uid()
-	_collider._tag     = _collider._id
-	_collider._class   = ""
-	_collider._data    = {}
-	_collider._color   = {r = 1, g = 1, b = 1, a = 1}
-	_collider._mode    = "line"
-	_collider._enter   = function() end
-	_collider._exit    = function() end
-	_collider._pre     = function() end
-	_collider._post    = function() end
-	_collider._body    = _b
-	_collider._shapes  = {
+	_collider._world  = self
+	_collider._id     = id or _uid()
+	_collider._tag    = _collider._id
+	_collider._class  = ""
+	_collider._data   = {}
+	_collider._color  = {r = 1, g = 1, b = 1, a = 1}
+	_collider._mode   = "line"
+	_collider._enter  = function() end
+	_collider._exit   = function() end
+	_collider._pre    = function() end
+	_collider._post   = function() end
+	_collider._body   = _b
+	_collider._shapes = {
 		main = {
 			_collider = _collider,
 			_id       = "main_" .. _collider._id,
@@ -361,6 +380,10 @@ function World:get_collider(tag)
 	return self._colliders[tag]
 end
 
+function World:get_joint(tag)
+	return self._joints[tag]
+end
+
 function Joint:draw()
 	local _r, _g, _b, _a = lg.getColor()
 	lg.setColor(self._color.r, self._color.g, self._color.b, self._color.a)
@@ -370,8 +393,22 @@ function Joint:draw()
 	lg.setColor(_r, _g, _b, _a)
 end
 
-function Joint:set_alpha(a) self._color.a = a return self end
-function Joint:set_color(r, g, b, a) self._color = {r = r, g = g, b = b, a = a or self._color.a} return self end
+function Joint:set_alpha(a) 
+	self._color.a = a 
+	return self 
+end
+
+function Joint:set_color(r, g, b, a) 
+	self._color = {r = r, g = g, b = b, a = a or self._color.a} 
+	return self 
+end
+
+function Joint:destroy()
+	self._world._joints[self._id] = nil 
+	self._world = nil
+	self._joint:destroy()
+	self._joint = nil
+end
 
 function Collider:set_class(class)
 	local class = class or "Default"
@@ -414,7 +451,7 @@ function Collider:add_shape(tag, shape_type, ...)
 		_exit     = function() end,
 		_pre      = function() end,
 		_post     = function() end,
-		_color      = {r = self._color.r, g = self._color.g, b =self._color.b, a =self._color.a},
+		_color    = {r = self._color.r, g = self._color.g, b =self._color.b, a =self._color.a},
 		_mode  = self._mode 
 	}
 	_set_funcs(shape, self._body, shape._shape, shape._fixture)

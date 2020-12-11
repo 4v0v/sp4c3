@@ -20,13 +20,10 @@ function Room:update(dt)
 	-- delete dead entities
 	for _, ent in pairs(self._ents['All']) do 
 		if ent.dead then
-			ent.timer:destroy()
-			ent.room = nil
 			self._ents['All'][ent.id] = nil
 			for _, type in pairs(ent.types) do 
 				self._ents[type][ent.id] = nil
 			end
-			ent = {}
 		end
 	end
 
@@ -51,14 +48,20 @@ function Room:draw()
 	self.camera:draw(function()
 		self:draw_inside_cam()
 		for _, ent in pairs(entities) do 
-			if ent.draw && !ent.out_cam then ent:draw() end
+			if ent.draw && !ent.out_cam then 
+				local _r,_g, _b, _a = love.graphics.getColor()
+				ent:draw()
+				love.graphics.setColor(_r, _g, _b, _a)
+			end
 		end
 	end)
 
 	self:draw_outside_cam()
 	for _, ent in pairs(entities) do 
-		if ent.draw && ent.out_cam then 
+		if ent.draw && ent.out_cam then
+			local _r,_g, _b, _a = love.graphics.getColor()
 			ent:draw()
+			love.graphics.setColor(_r, _g, _b, _a)
 		end
 	end
 end

@@ -1,8 +1,8 @@
-Square_guy = Entity:extend()
+Square_guy = Entity:extend("Square_guy")
 
 Square_guy.img = lg.newImage("assets/Square_guy.png")
 
-function Square_guy:new(x, y, world)
+function Square_guy:new(x, y, physics)
 	Square_guy.super.new(self, {x = x, y = y})
 
 	self.w = 100
@@ -11,18 +11,23 @@ function Square_guy:new(x, y, world)
 	self.dx = 0
 	self.dy = 0
 
-	self.world = world
+	self.physics = physics
 	self.img = Square_guy.img
 	self.img_w, self.img_h = self.img:getDimensions()
 
 	self.w_scale = self.w/self.img_w
 	self.h_scale = self.h/self.img_h
 
-	self.collider = self.world:add_rectangle(x,y, self.w, self.h)
+	self.collider = self.physics:add_rectangle(x,y, self.w, self.h)
 	self.collider:set_class("Enemy")
 	self.collider:set_data(self)
 
 	self.pos = Vec2(self.collider:getPosition())
+end
+
+function Square_guy:kill()
+	Square_guy.super.kill(self)
+	self.collider:destroy()
 end
 
 function Square_guy:update(dt)
@@ -30,7 +35,6 @@ function Square_guy:update(dt)
 end
 
 function Square_guy:draw()
-	Square_guy.super.draw(self)
 
 	lg.push()
 	lg.translate(self.collider:getX(), self.collider:getY())

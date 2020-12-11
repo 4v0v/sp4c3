@@ -30,8 +30,10 @@ function Entity:is_type(...)
 	return false
 end
 
-function Entity:kill() 
-	self.dead = true 
+function Entity:kill()
+	self.timer:destroy()
+	self.dead = true
+	self.room = nil
 end
 
 function Entity:after(...)

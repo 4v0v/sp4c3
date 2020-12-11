@@ -28,6 +28,10 @@ function love.run()
 		Timer   = require("libraries/timer")
 		Vec2    = require("libraries/vector")
 		Physics = require("libraries/physics")
+		Text    = require("libraries/moan")
+
+
+		Text.new("ttl", {"hello", "world", "lol"})
 	
 		require_all("classes")
 		require_all("rooms")
@@ -37,16 +41,32 @@ function love.run()
 		lg.setLineStyle("rough")
 		lg.setBackgroundColor(.2, .2, .2, .2)
 
+		-- game_canvas = lg.newCanvas(lg.getWidth(), lg.getHeight())
+		-- game_scale  = 1
 		room = Play()
 	end
 	
 	function update(dt)
+		Text.update(dt)
 		room:update(dt)
 		if pressed("escape") then load() end
+
+		if pressed("a") then Text.advance_msg() end
 	end
 	
 	function draw()
-		room:draw()
+		-- lg.setCanvas(game_canvas)
+    -- lg.clear()
+    -- lg.push() 
+    -- lg.scale(1/game_scale)
+		Text.draw(function()
+			room:draw()
+	
+	end)
+    -- lg.pop()
+    -- lg.setCanvas()
+
+    -- lg.draw(game_canvas, 0, 0, 0, game_scale)
 	end
 
 	load()
