@@ -3,20 +3,17 @@ Play = Room:extend('Play')
 function Play:new(id)
 	Play.super.new(self, id)
 
-
 	self.physics = Physics()
 	self.physics:add_class("Enemy")
 
 	self:add("vaisseau", Vaisseau(0, 0, self.physics))
 	self:add(Square_guy(-400, -400, self.physics))
 
-
 	self:add(Distance_joint(-300, 0, self.physics))
 	self:add(Rope_joint(-200, 0, self.physics))
 	self:add(Wheel_joint(-100, 0, self.physics))
 	self:add(Weld_joint(100, 0, self.physics))
 	self:add(Prismatic_joint(200, 0, self.physics))
-
 
 	self.borders = self.physics:add_chain(true, {-500, -500, 500, -500, 500, 500, -500, 500})
 end

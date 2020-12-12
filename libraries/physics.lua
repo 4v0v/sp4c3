@@ -162,8 +162,6 @@ function World:add_joint(a, b, c, d, ...) -- id, type, collider1, collider2, arg
 
 	assert(not self._joints[_id], "Joint already called '" .. tostring(_id) .."'.")
 
-	table.print(_args)
-
 	if     _jt == "distance"  then _j = lp.newDistanceJoint(_col1._body, _col2._body, unpack(_args))
 	elseif _jt == "friction"  then _j = lp.newFrictionJoint(_col1._body, _col2._body, unpack(_args))
 	elseif _jt == "motor"     then _j = lp.newMotorJoint(_col1._body, _col2._body, unpack(_args))             
